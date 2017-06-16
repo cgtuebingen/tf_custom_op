@@ -19,6 +19,7 @@ class Makefile(DistutilsInstall):
         subprocess.call(['make', '-C', 'matrix_add_op', 'build'])
         DistutilsInstall.run(self)
 
+
 setup(name='matrix-add',
       version='0.1',
       description='A simple example for adding custom Ops to TensorFlow',

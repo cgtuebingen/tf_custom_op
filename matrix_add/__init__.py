@@ -21,6 +21,7 @@ def _MatrixAddGrad(op, *grads):  # noqa
     topdiff = grads[0]
     return _matrix_add_module.matrix_add_grad(topdiff, matA, matB, bias=bias)
 
+
 """
 Example:
 

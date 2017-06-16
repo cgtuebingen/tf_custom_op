@@ -5,49 +5,55 @@ from matrix_add import matrix_add
 
 class MatrixAddtest(tf.test.TestCase):
 
-    def _forward(self, use_gpu=False):
-        matA = np.random.randn(1, 2, 3, 4).astype(np.float32) * 10
-        matB = np.random.randn(1, 2, 3, 4).astype(np.float32) * 10
+    def _forward(self, use_gpu=False, dtype=np.float32):
+        matA = np.random.randn(1, 2, 3, 4).astype(dtype) * 10
+        matB = np.random.randn(1, 2, 3, 4).astype(dtype) * 10
         bias = 42.
 
         expected = matA + matB + bias
-
-        tensorA = tf.Variable(matA, dtype=tf.float32)
-        tensorB = tf.Variable(matB, dtype=tf.float32)
-
-        ans_op = matrix_add(tensorA, tensorB, bias)
+        actual_op = matrix_add(matA, matB, bias)
 
         with self.test_session(use_gpu=use_gpu) as sess:
-            sess.run(tf.global_variables_initializer())
-            ans = sess.run(ans_op)
+            actual = sess.run(actual_op)
 
-        self.assertShapeEqual(expected, ans_op)
-        self.assertAllEqual(expected, ans)
+        self.assertShapeEqual(expected, actual_op)
+        self.assertAllClose(expected, actual)
 
-    def test_forward(self):
-        self._forward(use_gpu=False)
-        self._forward(use_gpu=True)
+    def test_forward_float(self):
+        self._forward(use_gpu=False, dtype=np.float32)
+        self._forward(use_gpu=True, dtype=np.float32)
 
-    def test_backward(self):
-        matA = np.random.randn(1, 2, 3, 4).astype(np.float32) * 10
-        matB = np.random.randn(1, 2, 3, 4).astype(np.float32) * 10
+    def test_forward_double(self):
+        self._forward(use_gpu=False, dtype=np.float64)
+        self._forward(use_gpu=True, dtype=np.float64)
+
+    def _backward(self, use_gpu=False, dtype=np.float32):
+        matA = np.random.randn(1, 2, 3, 4).astype(dtype) * 10
+        matB = np.random.randn(1, 2, 3, 4).astype(dtype) * 10
         bias = 42.
 
         expected = (matA + matB + bias).astype(np.float32)
 
-        tensorA = tf.Variable(matA, dtype=tf.float32)
-        tensorB = tf.Variable(matB, dtype=tf.float32)
+        matA_op = tf.convert_to_tensor(matA)
+        matB_op = tf.convert_to_tensor(matB)
 
-        actual = matrix_add(tensorA, tensorB, bias)
+        actual_op = matrix_add(matA_op, matB_op, bias)
 
-        with self.test_session() as sess:
-            sess.run(tf.global_variables_initializer())
-
+        with self.test_session():
             err = tf.test.compute_gradient_error(
-                [tensorA, tensorB], [matA.shape, matB.shape],
-                actual, expected.shape)
+                [matA_op, matB_op], [matA.shape, matB.shape],
+                actual_op, expected.shape)
 
         self.assertLess(err, 1e-2)
+
+    def test_backward_float(self):
+        self._backward(use_gpu=False, dtype=np.float32)
+        self._backward(use_gpu=True, dtype=np.float32)
+
+    def test_backward_double(self):
+        self._backward(use_gpu=False, dtype=np.float64)
+        self._backward(use_gpu=True, dtype=np.float64)
+
 
 if __name__ == '__main__':
     tf.test.main()
