@@ -5,7 +5,7 @@ from matrix_add import matrix_add
 
 class MatrixAddtest(tf.test.TestCase):
 
-    def test_forward(self):
+    def _forward(self, use_gpu=False):
         matA = np.random.randn(1, 2, 3, 4).astype(np.float32) * 10
         matB = np.random.randn(1, 2, 3, 4).astype(np.float32) * 10
         bias = 42.
@@ -15,13 +15,18 @@ class MatrixAddtest(tf.test.TestCase):
         tensorA = tf.Variable(matA, dtype=tf.float32)
         tensorB = tf.Variable(matB, dtype=tf.float32)
 
-        actual = matrix_add(tensorA, tensorB, bias)
+        ans_op = matrix_add(tensorA, tensorB, bias)
 
-        with self.test_session() as sess:
+        with self.test_session(use_gpu=use_gpu) as sess:
             sess.run(tf.global_variables_initializer())
-            actual = sess.run(actual)
+            ans = sess.run(ans_op)
 
-        self.assertTrue(np.all(actual == expected))
+        self.assertShapeEqual(expected, ans_op)
+        self.assertAllEqual(expected, ans)
+
+    def test_forward(self):
+        self._forward(use_gpu=False)
+        self._forward(use_gpu=True)
 
     def test_backward(self):
         matA = np.random.randn(1, 2, 3, 4).astype(np.float32) * 10
