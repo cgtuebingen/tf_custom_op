@@ -12,22 +12,22 @@ namespace functor {
 template <typename Dtype>
 struct MatrixAddFunctor<CPUDevice, Dtype> {
   void operator ()(::tensorflow::OpKernelContext* ctx,
-                   const Tensor& matrix_a,
-                   const Tensor& matrix_b,
-                   Tensor *output,
+                   const Tensor& mA_,
+                   const Tensor& mB_,
+                   Tensor *mC_,
                    Dtype bias) {
 
-    auto mC = output->tensor<Dtype, 4>();
-    auto mA = matrix_a.tensor<Dtype, 4>();
-    auto mB = matrix_b.tensor<Dtype, 4>();
+    auto mC = mC_->tensor<Dtype, 4>();
+    auto mA = mA_.tensor<Dtype, 4>();
+    auto mB = mB_.tensor<Dtype, 4>();
 
     mC.setZero();
 
     // get dimensions
-    const int B = matrix_a.shape().dim_size(0);
-    const int M = matrix_a.shape().dim_size(1);
-    const int N = matrix_a.shape().dim_size(2);
-    const int D = matrix_a.shape().dim_size(3);
+    const int B = mA_.shape().dim_size(0);
+    const int M = mA_.shape().dim_size(1);
+    const int N = mA_.shape().dim_size(2);
+    const int D = mA_.shape().dim_size(3);
 
     // the computation
     for (int b = 0; b < B; ++b)
@@ -46,22 +46,22 @@ template struct MatrixAddFunctor<CPUDevice, double>;
 template <typename Dtype>
 struct MatrixAddGrad<CPUDevice, Dtype> {
   void operator ()(::tensorflow::OpKernelContext* ctx,
-                   const Tensor& top_diff,
-                   Tensor *grad_matrix_a,
-                   Tensor *grad_matrix_b) {
+                   const Tensor& topdiff_,
+                   Tensor *grad_mA_,
+                   Tensor *grad_mB_) {
 
-    const int N = top_diff.NumElements();
+    const int N = topdiff_.NumElements();
 
-    grad_matrix_a->flat<Dtype>().setZero();
-    grad_matrix_b->flat<Dtype>().setZero();
+    grad_mA_->flat<Dtype>().setZero();
+    grad_mB_->flat<Dtype>().setZero();
 
-    const Dtype* topdiff_ptr = top_diff.flat<Dtype>().data();
-    Dtype* grad_matrix_a_ptr = grad_matrix_a->flat<Dtype>().data();
-    Dtype* grad_matrix_b_ptr = grad_matrix_b->flat<Dtype>().data();
+    const Dtype* topdiff = topdiff_.flat<Dtype>().data();
+    Dtype* grad_mA = grad_mA_->flat<Dtype>().data();
+    Dtype* grad_mB = grad_mB_->flat<Dtype>().data();
 
     for (int i = 0; i < N; ++i) {
-      grad_matrix_a_ptr[i] = topdiff_ptr[i];
-      grad_matrix_b_ptr[i] = topdiff_ptr[i];
+      grad_mA[i] = topdiff[i];
+      grad_mB[i] = topdiff[i];
     }
 
   }
@@ -70,6 +70,7 @@ struct MatrixAddGrad<CPUDevice, Dtype> {
 template struct MatrixAddGrad<CPUDevice, int>;
 template struct MatrixAddGrad<CPUDevice, float>;
 template struct MatrixAddGrad<CPUDevice, double>;
+
 
 } // namespace functor
 
@@ -87,32 +88,24 @@ public:
 
   void Compute(OpKernelContext* ctx) override {
     // printf("--> Compute CPU Version <--\n");
-    // access incoming tensors (const)
-    const Tensor& matrix_a = ctx->input(0);
-    const Tensor& matrix_b = ctx->input(1);
+    const Tensor& mA = ctx->input(0);
+    const Tensor& mB = ctx->input(1);
 
+    const int B = mA.shape().dim_size(0);
+    const int M = mA.shape().dim_size(1);
+    const int N = mA.shape().dim_size(2);
+    const int D = mA.shape().dim_size(3);
 
-    // get dimensions
-    const int B = matrix_a.shape().dim_size(0);
-    const int M = matrix_a.shape().dim_size(1);
-    const int N = matrix_a.shape().dim_size(2);
-    const int D = matrix_a.shape().dim_size(3);
+    TensorShape output_shape({B, M, N, D});
+    // same as 
+    // output_shape.AddDim(B); ....
 
-    // specify output shape
-    TensorShape output_shape;
-    output_shape.AddDim(B);
-    output_shape.AddDim(M);
-    output_shape.AddDim(N);
-    output_shape.AddDim(D);
-    // same as "OP_REQUIRES_OK(ctx,ctx->allocate_output(0, matrix_a.tensor<Dtype, 4>().shape(), &output));"
-
-    // construct output
-    Tensor* output = nullptr;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &output));
-    auto out_tensor = output->tensor<Dtype, 4>();
+    Tensor* mC = nullptr;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &mC));
+    // same as "OP_REQUIRES_OK(ctx,ctx->allocate_output(0, mA.tensor<Dtype, 4>().shape(), &mC));"
 
     ::tensorflow::functor::MatrixAddFunctor<Device, Dtype>()(ctx,
-        matrix_a, matrix_b, output, bias_);
+        mA, mB, mC, bias_);
 
   }
 
@@ -132,20 +125,17 @@ public:
 
   void Compute(OpKernelContext* ctx) override {
     // printf("--> Compute CPU Version <--\n");
+    const Tensor& mA = ctx->input(0);
+    const Tensor& mB = ctx->input(1);
+    const Tensor& topdiff = ctx->input(2);
 
-    const Tensor& top_diff = ctx->input(0);
-    const Tensor& matrix_a = ctx->input(1);
-    const Tensor& matrix_b = ctx->input(2);
-
-    const int N = top_diff.shape().num_elements();
-
-    Tensor* grad_matrix_a = nullptr;
-    Tensor* grad_matrix_b = nullptr;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, matrix_a.shape(), &grad_matrix_a));
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(1, matrix_b.shape(), &grad_matrix_b));
+    Tensor* grad_mA = nullptr;
+    Tensor* grad_mB = nullptr;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, mA.shape(), &grad_mA));
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(1, mB.shape(), &grad_mB));
 
     ::tensorflow::functor::MatrixAddGrad<Device, Dtype>()(ctx,
-        top_diff, grad_matrix_a, grad_matrix_b);
+        topdiff, grad_mA, grad_mB);
 
   }
 

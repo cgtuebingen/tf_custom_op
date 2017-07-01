@@ -19,7 +19,7 @@ def _MatrixAddGrad(op, *grads):  # noqa
     matB = op.inputs[1]
     top = op.outputs[0]  # noqa
     topdiff = grads[0]
-    return _matrix_add_module.matrix_add_grad(topdiff, matA, matB, bias=bias)
+    return _matrix_add_module.matrix_add_grad(matA, matB, topdiff, bias=bias)
 
 
 """

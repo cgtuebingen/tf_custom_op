@@ -20,18 +20,18 @@ namespace functor {
     template <typename Device, typename Dtype>
     struct MatrixAddFunctor{
       void operator ()(::tensorflow::OpKernelContext* ctx,
-                       const Tensor& matrix_a,
-                       const Tensor& matrix_b,
-                       Tensor *output, 
+                       const Tensor& mA_,
+                       const Tensor& mB_,
+                       Tensor *mC_, 
                        Dtype bias);
     };
 
     template <typename Device, typename Dtype>
     struct MatrixAddGrad{
       void operator ()(::tensorflow::OpKernelContext* ctx,
-                       const Tensor& top_diff,
-                       Tensor *grad_matrix_a,
-                       Tensor *grad_matrix_b);
+                       const Tensor& topdiff_,
+                       Tensor *grad_mA_,
+                       Tensor *grad_mB_);
     };
 
 
