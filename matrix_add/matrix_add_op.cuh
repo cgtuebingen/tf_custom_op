@@ -1,5 +1,5 @@
-#ifndef COPY_OP_HH
-#define COPY_OP_HH
+#ifndef MATRIX_ADD_OP_HH
+#define MATRIX_ADD_OP_HH
 
 template<typename T>
 void MatrixAddOpForwardCudaKernelLauncher(T* top, const int N, 

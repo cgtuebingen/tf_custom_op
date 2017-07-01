@@ -4,7 +4,7 @@
 #include "tensorflow/core/framework/shape_inference.h"
 #define EIGEN_USE_GPU
 
-#include "matrix_add_op.cu.hh"
+#include "matrix_add_op.cuh"
 
 namespace tensorflow {
 

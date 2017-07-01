@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "matrix_add_op.cu.hh"
+#include "matrix_add_op.cuh"
 
 template<typename T>
 __global__ void MatrixAddOpForwardCudaKernel(T* top, const int N, 
