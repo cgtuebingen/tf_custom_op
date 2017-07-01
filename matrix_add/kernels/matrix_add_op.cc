@@ -8,71 +8,6 @@
 
 namespace tensorflow {
 
-namespace shape_inference {
-
-Status UnchangedShape(shape_inference::InferenceContext* c) {
-    c->set_output(0, c->input(0));
-    return Status::OK();
-  }
-}
-
-REGISTER_OP("MatrixAdd")
-.Attr("bias: float")
-.Attr("T: realnumbertype")
-.Input("matrix_a: T")
-.Input("matrix_b: T")
-.Output("output: T")
-.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c)
-    {
-      // we require the input to have 4 axes
-      ::tensorflow::shape_inference::ShapeHandle shape_hnd;
-      TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 4, &shape_hnd));
-      TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 4, &shape_hnd));
-
-      ::tensorflow::shape_inference::ShapeHandle matrix_a_shape = c->input(0);
-      ::tensorflow::shape_inference::ShapeHandle matrix_b_shape = c->input(1);
-
-      // assert shapes of matrix_a and matrix_b are matching
-      TF_RETURN_IF_ERROR(c->Merge(matrix_a_shape, matrix_b_shape, &matrix_a_shape));
-
-      // specify output-shape
-      // this could be "c->set_output(0, matrix_a_shape);"
-      // but we do it explicitly
-      auto B = c->Dim(c->input(0), 0);
-      auto M = c->Dim(c->input(0), 1);
-      auto N = c->Dim(c->input(0), 2);
-      auto D = c->Dim(c->input(0), 3);
-      c->set_output(0, c->MakeShape({B,M,N,D}));
-
-      // we can also use the Attr here
-      float bias;
-      c->GetAttr("bias", &bias);
-
-      return Status::OK();
-    })
-.Doc(R"doc(
-Add two matrices and a constant
-
-This computes `A`+`B`+`bias` for two matrices.
-
-matrix_a: A batch of matrices [B, M, N, D].
-matrix_b: A batch of matrices [B, M, N, D].
-output: A batch of matrices [B, M, N, D] containing the result.
-bias: An additional constant term.
-)doc");
-
-REGISTER_OP("MatrixAddGrad")
-.Attr("bias: float")
-.Input("gradients: T")
-.Input("matrix_a: T")
-.Input("matrix_b: T")
-.Output("grad_matrix_a: T")
-.Output("grad_matrix_b: T")
-.Attr("T: realnumbertype")
-.Doc(R"doc(
-Returns gradients of "matrix_a + matrix_b + bias".
-)doc");
-
 typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
 
@@ -82,8 +17,8 @@ template<typename Device, typename Dtype>
 class MatrixAddOp: public OpKernel {
 public:
   explicit MatrixAddOp(OpKernelConstruction* context) :
-      OpKernel(context) {
-        OP_REQUIRES_OK(context,
+    OpKernel(context) {
+    OP_REQUIRES_OK(context,
                    context->GetAttr("bias", &bias_));
   }
 
@@ -112,7 +47,7 @@ public:
     output_shape.AddDim(D);
     // construct output
     Tensor* output = nullptr;
-    OP_REQUIRES_OK(context,context->allocate_output(0, output_shape, &output));
+    OP_REQUIRES_OK(context, context->allocate_output(0, output_shape, &output));
     auto out_tensor = output->tensor<Dtype, 4>();
 
     for (int b = 0; b < B; ++b)
@@ -133,8 +68,8 @@ template<typename Dtype>
 class MatrixAddOp<GPUDevice, Dtype>: public OpKernel {
 public:
   explicit MatrixAddOp(OpKernelConstruction* context) :
-      OpKernel(context) {
-        OP_REQUIRES_OK(context,
+    OpKernel(context) {
+    OP_REQUIRES_OK(context,
                    context->GetAttr("bias", &bias_));
   }
 
@@ -149,7 +84,7 @@ public:
     auto matrix_b_flat = matrix_b.flat<Dtype>();
 
     Tensor* output = nullptr;
-    OP_REQUIRES_OK(context,context->allocate_output(0, matrix_a.shape(), &output));
+    OP_REQUIRES_OK(context, context->allocate_output(0, matrix_a.shape(), &output));
     auto out_flat = output->flat<Dtype>();
 
     Dtype* _top = out_flat.data();
@@ -157,8 +92,8 @@ public:
     const Dtype* _inB = matrix_b_flat.data();
 
     MatrixAddOpForwardCudaKernelLauncher<Dtype>(_top, N,
-                                                _inA, _inB,
-                                                bias_);
+        _inA, _inB,
+        bias_);
   }
 
 private:
@@ -172,7 +107,7 @@ template<typename Device, typename Dtype>
 class MatrixAddGradOp: public OpKernel {
 public:
   explicit MatrixAddGradOp(OpKernelConstruction* context) :
-      OpKernel(context) {
+    OpKernel(context) {
   }
 
   void Compute(OpKernelContext* context) override {
@@ -184,11 +119,11 @@ public:
     const Dtype* topdiff_ptr = top_diff.flat<Dtype>().data();
 
     Tensor* matrix_a_grad = nullptr;
-    OP_REQUIRES_OK(context,context->allocate_output(0, features.shape(), &matrix_a_grad));
+    OP_REQUIRES_OK(context, context->allocate_output(0, features.shape(), &matrix_a_grad));
     matrix_a_grad->flat<Dtype>().setZero();
 
     Tensor* matrix_b_grad = nullptr;
-    OP_REQUIRES_OK(context,context->allocate_output(1, features.shape(), &matrix_b_grad));
+    OP_REQUIRES_OK(context, context->allocate_output(1, features.shape(), &matrix_b_grad));
     matrix_b_grad->flat<Dtype>().setZero();
 
     Dtype* matrix_a_grad_ptr = matrix_a_grad->flat<Dtype>().data();
@@ -206,10 +141,10 @@ public:
 // Backward-Pass (GPU)
 // --------------------------------------------------
 template<typename Dtype>
-class MatrixAddGradOp<GPUDevice,Dtype>: public OpKernel {
+class MatrixAddGradOp<GPUDevice, Dtype>: public OpKernel {
 public:
   explicit MatrixAddGradOp(OpKernelConstruction* context) :
-      OpKernel(context) {
+    OpKernel(context) {
   }
 
   void Compute(OpKernelContext* context) override {
@@ -221,13 +156,13 @@ public:
     const int N = top_diff.shape().num_elements();
 
     Tensor* grad_matrix_a = nullptr;
-    OP_REQUIRES_OK(context,context->allocate_output(0, matrix_a.shape(), &grad_matrix_a));
+    OP_REQUIRES_OK(context, context->allocate_output(0, matrix_a.shape(), &grad_matrix_a));
     Tensor* grad_matrix_b = nullptr;
-    OP_REQUIRES_OK(context,context->allocate_output(1, matrix_b.shape(), &grad_matrix_b));
+    OP_REQUIRES_OK(context, context->allocate_output(1, matrix_b.shape(), &grad_matrix_b));
 
-    MatrixAddOpBackwardCudaKernelLauncher(top_diff.flat<Dtype>().data(), N, 
-      matrix_a.flat<Dtype>().data(), matrix_b.flat<Dtype>().data(),
-      grad_matrix_a->flat<Dtype>().data(), grad_matrix_b->flat<Dtype>().data());
+    MatrixAddOpBackwardCudaKernelLauncher(top_diff.flat<Dtype>().data(), N,
+                                          matrix_a.flat<Dtype>().data(), matrix_b.flat<Dtype>().data(),
+                                          grad_matrix_a->flat<Dtype>().data(), grad_matrix_b->flat<Dtype>().data());
   }
 
 };
@@ -242,7 +177,7 @@ public:
       MatrixAddOp<GPUDevice, type>);                                           \
   REGISTER_KERNEL_BUILDER(                                                     \
       Name("MatrixAddGrad").Device(DEVICE_CPU).TypeConstraint<type>("T"),      \
-      MatrixAddGradOp<CPUDevice, type>);                                            \
+      MatrixAddGradOp<CPUDevice, type>);                                       \
   REGISTER_KERNEL_BUILDER(                                                     \
       Name("MatrixAddGrad").Device(DEVICE_GPU).TypeConstraint<type>("T"),      \
       MatrixAddGradOp<GPUDevice, type>);
