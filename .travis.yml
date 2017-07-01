@@ -30,11 +30,11 @@ install:
 - pip install tensorflow-gpu flake8
 
 script:
-  - python -c "import tensorflow as tf; print('TensorFlow '+ tf.__version__)"
+  - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64 python -c "import tensorflow as tf; print('TensorFlow '+ tf.__version__)"
   - cd matrix_add && flake8 .
   - pwd
   - ls -la
-  - cd matrix_add && make
+  - cd matrix_add && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64 make
 
 
 notifications:
