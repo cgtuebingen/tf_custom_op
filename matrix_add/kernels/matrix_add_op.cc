@@ -142,23 +142,23 @@ public:
 };
 
 
-#define REGISTER(type)                                                         \
-  REGISTER_KERNEL_BUILDER(                                                     \
-      Name("MatrixAdd").Device(DEVICE_CPU).TypeConstraint<type>("T"),          \
-      MatrixAddOp<CPUDevice, type>);                                           \
-  REGISTER_KERNEL_BUILDER(                                                     \
-      Name("MatrixAdd").Device(DEVICE_GPU).TypeConstraint<type>("T"),          \
-      MatrixAddOp<GPUDevice, type>);                                           \
-  REGISTER_KERNEL_BUILDER(                                                     \
-      Name("MatrixAddGrad").Device(DEVICE_CPU).TypeConstraint<type>("T"),      \
-      MatrixAddGradOp<CPUDevice, type>);                                       \
-  REGISTER_KERNEL_BUILDER(                                                     \
-      Name("MatrixAddGrad").Device(DEVICE_GPU).TypeConstraint<type>("T"),      \
-      MatrixAddGradOp<GPUDevice, type>);
+#define OPNAME(NAME) NAME ## Op
+#define REGISTER(NAME, Dtype)                                          \
+  REGISTER_KERNEL_BUILDER(                                             \
+      Name(#NAME).Device(DEVICE_CPU).TypeConstraint<Dtype>("T"),       \
+      OPNAME(NAME)<CPUDevice, Dtype>);                                 \
+  REGISTER_KERNEL_BUILDER(                                             \
+      Name(#NAME).Device(DEVICE_GPU).TypeConstraint<Dtype>("T"),       \
+      OPNAME(NAME)<GPUDevice, Dtype>);                                           
 
 
-REGISTER(int);
-REGISTER(float);
-REGISTER(double);
+REGISTER(MatrixAdd, int);
+REGISTER(MatrixAdd, float);
+REGISTER(MatrixAdd, double);
+REGISTER(MatrixAddGrad, int);
+REGISTER(MatrixAddGrad, float);
+REGISTER(MatrixAddGrad, double);
+
+
 
 } // namespace tensorflow
