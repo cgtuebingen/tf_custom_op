@@ -9,6 +9,8 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
+      - nvidia-cuda-dev
+      - nvidia-profiler
       - nvidia-cuda-toolkit
       - g++
       - g++-4.9
