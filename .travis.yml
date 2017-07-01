@@ -16,12 +16,8 @@ install:
 - pip install -U pip  # the pip version on travis is too old
 - pip install tensorflow-gpu
 
-
-before_install:
-  - python -c "import tensorflow as tf; print('TensorFlow '+ tf.__version__)"
-
-
 script:
+  - python -c "import tensorflow as tf; print('TensorFlow '+ tf.__version__)"
   - cd matrix_add && flake8 .
   - cd matrix_add && make
 
