@@ -19,6 +19,8 @@ install:
 script:
   - python -c "import tensorflow as tf; print('TensorFlow '+ tf.__version__)"
   - cd matrix_add && flake8 .
+  - pwd
+  - ls -la
   - cd matrix_add && make
 
 
