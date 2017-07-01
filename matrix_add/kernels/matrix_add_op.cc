@@ -1,34 +1,96 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
-#include <stdio.h>
-#include "tensorflow/core/framework/shape_inference.h"
-#define EIGEN_USE_GPU
 
-#include "matrix_add_op.cuh"
+#include <stdio.h>
+
+#include "matrix_add_op.h"
 
 namespace tensorflow {
 
-typedef Eigen::ThreadPoolDevice CPUDevice;
-typedef Eigen::GpuDevice GPUDevice;
+namespace functor {
 
-// Forward-Pass (CPU)
+template <typename Dtype>
+struct MatrixAddFunctor<CPUDevice, Dtype> {
+  void operator ()(::tensorflow::OpKernelContext* ctx,
+                   const Tensor& matrix_a,
+                   const Tensor& matrix_b,
+                   Tensor *output,
+                   Dtype bias) {
+
+    auto mC = output->tensor<Dtype, 4>();
+    auto mA = matrix_a.tensor<Dtype, 4>();
+    auto mB = matrix_b.tensor<Dtype, 4>();
+
+    mC.setZero();
+
+    // get dimensions
+    const int B = matrix_a.shape().dim_size(0);
+    const int M = matrix_a.shape().dim_size(1);
+    const int N = matrix_a.shape().dim_size(2);
+    const int D = matrix_a.shape().dim_size(3);
+
+    // the computation
+    for (int b = 0; b < B; ++b)
+      for (int r = 0; r < M; ++r)
+        for (int c = 0; c < N; ++c)
+          for (int d = 0; d < D; ++d)
+            mC(b, r, c, d) = mA(b, r, c, d) + mB(b, r, c, d) + bias;
+  }
+};
+
+template struct MatrixAddFunctor<CPUDevice, int>;
+template struct MatrixAddFunctor<CPUDevice, float>;
+template struct MatrixAddFunctor<CPUDevice, double>;
+
+
+template <typename Dtype>
+struct MatrixAddGrad<CPUDevice, Dtype> {
+  void operator ()(::tensorflow::OpKernelContext* ctx,
+                   const Tensor& top_diff,
+                   Tensor *grad_matrix_a,
+                   Tensor *grad_matrix_b) {
+
+    const int N = top_diff.NumElements();
+
+    grad_matrix_a->flat<Dtype>().setZero();
+    grad_matrix_b->flat<Dtype>().setZero();
+
+    const Dtype* topdiff_ptr = top_diff.flat<Dtype>().data();
+    Dtype* grad_matrix_a_ptr = grad_matrix_a->flat<Dtype>().data();
+    Dtype* grad_matrix_b_ptr = grad_matrix_b->flat<Dtype>().data();
+
+    for (int i = 0; i < N; ++i) {
+      grad_matrix_a_ptr[i] = topdiff_ptr[i];
+      grad_matrix_b_ptr[i] = topdiff_ptr[i];
+    }
+
+  }
+};
+
+template struct MatrixAddGrad<CPUDevice, int>;
+template struct MatrixAddGrad<CPUDevice, float>;
+template struct MatrixAddGrad<CPUDevice, double>;
+
+} // namespace functor
+
+
+// Forward-Pass (CPU, GPU)
 // --------------------------------------------------
 template<typename Device, typename Dtype>
 class MatrixAddOp: public OpKernel {
 public:
-  explicit MatrixAddOp(OpKernelConstruction* context) :
-    OpKernel(context) {
-    OP_REQUIRES_OK(context,
-                   context->GetAttr("bias", &bias_));
+  explicit MatrixAddOp(OpKernelConstruction* ctx) :
+    OpKernel(ctx) {
+    OP_REQUIRES_OK(ctx,
+                   ctx->GetAttr("bias", &bias_));
   }
 
-  void Compute(OpKernelContext* context) override {
+  void Compute(OpKernelContext* ctx) override {
     // printf("--> Compute CPU Version <--\n");
     // access incoming tensors (const)
-    const Tensor& matrix_a = context->input(0);
-    const auto matrix_a_tensor = matrix_a.tensor<Dtype, 4>();
-    const Tensor& matrix_b = context->input(1);
-    const auto matrix_b_tensor = matrix_b.tensor<Dtype, 4>();
+    const Tensor& matrix_a = ctx->input(0);
+    const Tensor& matrix_b = ctx->input(1);
+
 
     // get dimensions
     const int B = matrix_a.shape().dim_size(0);
@@ -37,138 +99,60 @@ public:
     const int D = matrix_a.shape().dim_size(3);
 
     // specify output shape
-    // just do
-    // "OP_REQUIRES_OK(context,context->allocate_output(0, matrix_a.shape(), &output));"
-    // or the longer way
     TensorShape output_shape;
     output_shape.AddDim(B);
     output_shape.AddDim(M);
     output_shape.AddDim(N);
     output_shape.AddDim(D);
+    // same as "OP_REQUIRES_OK(ctx,ctx->allocate_output(0, matrix_a.tensor<Dtype, 4>().shape(), &output));"
+
     // construct output
     Tensor* output = nullptr;
-    OP_REQUIRES_OK(context, context->allocate_output(0, output_shape, &output));
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &output));
     auto out_tensor = output->tensor<Dtype, 4>();
 
-    for (int b = 0; b < B; ++b)
-      for (int r = 0; r < M; ++r)
-        for (int c = 0; c < N; ++c)
-          for (int d = 0; d < D; ++d)
-            out_tensor(b, r, c, d) = matrix_a_tensor(b, r, c, d) + matrix_b_tensor(b, r, c, d) + bias_;
+    ::tensorflow::functor::MatrixAddFunctor<Device, Dtype>()(ctx,
+        matrix_a, matrix_b, output, bias_);
+
   }
 
 private:
-//  TF_DISALLOW_COPY_AND_ASSIGN(MatrixAddOp);
+  TF_DISALLOW_COPY_AND_ASSIGN(MatrixAddOp);
   float bias_;
 };
 
-// Forward-Pass (GPU)
-// --------------------------------------------------
-template<typename Dtype>
-class MatrixAddOp<GPUDevice, Dtype>: public OpKernel {
-public:
-  explicit MatrixAddOp(OpKernelConstruction* context) :
-    OpKernel(context) {
-    OP_REQUIRES_OK(context,
-                   context->GetAttr("bias", &bias_));
-  }
-
-  void Compute(OpKernelContext* context) override {
-    // printf("--> Compute GPU Version <--\n");
-    const Tensor& matrix_a = context->input(0);
-    const Tensor& matrix_b = context->input(1);
-
-    // access the elements
-    const int N = matrix_a.NumElements();
-    auto matrix_a_flat = matrix_a.flat<Dtype>();
-    auto matrix_b_flat = matrix_b.flat<Dtype>();
-
-    Tensor* output = nullptr;
-    OP_REQUIRES_OK(context, context->allocate_output(0, matrix_a.shape(), &output));
-    auto out_flat = output->flat<Dtype>();
-
-    Dtype* _top = out_flat.data();
-    const Dtype* _inA = matrix_a_flat.data();
-    const Dtype* _inB = matrix_b_flat.data();
-
-    MatrixAddOpForwardCudaKernelLauncher<Dtype>(_top, N,
-        _inA, _inB,
-        bias_);
-  }
-
-private:
-//  TF_DISALLOW_COPY_AND_ASSIGN(MatrixAddOp);
-  float bias_;
-};
-
-// Backward-Pass (CPU)
+// Backward-Pass (CPU, GPU)
 // --------------------------------------------------
 template<typename Device, typename Dtype>
 class MatrixAddGradOp: public OpKernel {
 public:
-  explicit MatrixAddGradOp(OpKernelConstruction* context) :
-    OpKernel(context) {
+  explicit MatrixAddGradOp(OpKernelConstruction* ctx) :
+    OpKernel(ctx) {
   }
 
-  void Compute(OpKernelContext* context) override {
+  void Compute(OpKernelContext* ctx) override {
     // printf("--> Compute CPU Version <--\n");
-    const Tensor& top_diff = context->input(0);
-    const Tensor& features = context->input(1);
-    const int N = top_diff.NumElements();
 
-    const Dtype* topdiff_ptr = top_diff.flat<Dtype>().data();
-
-    Tensor* matrix_a_grad = nullptr;
-    OP_REQUIRES_OK(context, context->allocate_output(0, features.shape(), &matrix_a_grad));
-    matrix_a_grad->flat<Dtype>().setZero();
-
-    Tensor* matrix_b_grad = nullptr;
-    OP_REQUIRES_OK(context, context->allocate_output(1, features.shape(), &matrix_b_grad));
-    matrix_b_grad->flat<Dtype>().setZero();
-
-    Dtype* matrix_a_grad_ptr = matrix_a_grad->flat<Dtype>().data();
-    Dtype* matrix_b_grad_ptr = matrix_b_grad->flat<Dtype>().data();
-
-    for (int i = 0; i < N; ++i) {
-      matrix_a_grad_ptr[i] = topdiff_ptr[i];
-      matrix_b_grad_ptr[i] = topdiff_ptr[i];
-    }
-
-  }
-
-};
-
-// Backward-Pass (GPU)
-// --------------------------------------------------
-template<typename Dtype>
-class MatrixAddGradOp<GPUDevice, Dtype>: public OpKernel {
-public:
-  explicit MatrixAddGradOp(OpKernelConstruction* context) :
-    OpKernel(context) {
-  }
-
-  void Compute(OpKernelContext* context) override {
-    // printf("--> Compute GPU Version <--\n");
-    const Tensor& top_diff = context->input(0);
-    const Tensor& matrix_a = context->input(1);
-    const Tensor& matrix_b = context->input(2);
+    const Tensor& top_diff = ctx->input(0);
+    const Tensor& matrix_a = ctx->input(1);
+    const Tensor& matrix_b = ctx->input(2);
 
     const int N = top_diff.shape().num_elements();
 
     Tensor* grad_matrix_a = nullptr;
-    OP_REQUIRES_OK(context, context->allocate_output(0, matrix_a.shape(), &grad_matrix_a));
     Tensor* grad_matrix_b = nullptr;
-    OP_REQUIRES_OK(context, context->allocate_output(1, matrix_b.shape(), &grad_matrix_b));
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, matrix_a.shape(), &grad_matrix_a));
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(1, matrix_b.shape(), &grad_matrix_b));
 
-    MatrixAddOpBackwardCudaKernelLauncher(top_diff.flat<Dtype>().data(), N,
-                                          matrix_a.flat<Dtype>().data(), matrix_b.flat<Dtype>().data(),
-                                          grad_matrix_a->flat<Dtype>().data(), grad_matrix_b->flat<Dtype>().data());
+    ::tensorflow::functor::MatrixAddGrad<Device, Dtype>()(ctx,
+        top_diff, grad_matrix_a, grad_matrix_b);
+
   }
 
 };
 
 
-#define REGISTER_MYCOPY_KERNELS(type)                                          \
+#define REGISTER(type)                                                         \
   REGISTER_KERNEL_BUILDER(                                                     \
       Name("MatrixAdd").Device(DEVICE_CPU).TypeConstraint<type>("T"),          \
       MatrixAddOp<CPUDevice, type>);                                           \
@@ -183,8 +167,8 @@ public:
       MatrixAddGradOp<GPUDevice, type>);
 
 
-REGISTER_MYCOPY_KERNELS(int);
-REGISTER_MYCOPY_KERNELS(float);
-REGISTER_MYCOPY_KERNELS(double);
+REGISTER(int);
+REGISTER(float);
+REGISTER(double);
 
-}
+} // namespace tensorflow

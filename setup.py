@@ -10,7 +10,7 @@ import subprocess
 try:
     import tensorflow as tf  # noqa
 except ImportError:
-    print("Please install tensorflow 0.12.0 or later")
+    print("Please install tensorflow 1.2.0 or later")
     sys.exit()
 
 
