@@ -1,3 +1,5 @@
+# ComputerGraphics Tuebingen, 2017
+
 # manually generated file
 import tensorflow as tf
 import os

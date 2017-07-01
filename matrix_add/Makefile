@@ -14,13 +14,13 @@ build: $(USER_OP)_op.so
 
 $(USER_OP)_op.cu.o:
 	nvcc -std=c++11 --expt-relaxed-constexpr --shared --gpu-architecture=sm_52 \
-		-c -o $(USER_OP)_op.cu.o kernels/$(USER_OP)_op.cu \
+		-c -o $(USER_OP)_op.cu.o kernels/$(USER_OP)_kernel.cu \
 		-isystem $(TF_INC) \
 		-D GOOGLE_CUDA=1 -x cu -Xcompiler $(FLAGS)
 	
 $(USER_OP)_op.so: kernels/$(USER_OP)_op.cc $(USER_OP)_op.cu.o
 	g++ -std=c++11 -o $(USER_OP)_op.so --shared \
-		$(USER_OP)_op.cu.o kernels/$(USER_OP)_op.cc ops/$(USER_OP).cc \
+		$(USER_OP)_op.cu.o kernels/$(USER_OP)_op.cc ops/$(USER_OP).cc kernels/$(USER_OP)_kernel.cc\
 		-isystem $(TF_INC)  \
 		-lcudart -L$(CUDA_LIB) \
 		$(FLAGS)

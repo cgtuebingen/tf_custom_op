@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# ComputerGraphics Tuebingen, 2017
+
 import numpy as np
 import tensorflow as tf
 from matrix_add import matrix_add
