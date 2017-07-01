@@ -3,6 +3,17 @@ dist: trusty
 cache:
   pip: true
 
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - nvidia-cuda-toolkit
+      - g++
+      - g++-4.9
+      - g++-5
+
 matrix:
   fast_finish: true
   include:
