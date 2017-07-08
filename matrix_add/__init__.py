@@ -7,7 +7,7 @@ from tensorflow.python.framework import ops
 
 __all__ = ['matrix_add', 'matrix_add_grad']
 
-path = os.path.join(os.path.dirname(__file__), 'matrix_add_op.so')
+path = os.path.join(os.path.dirname(__file__), 'build/matrix_add_op.so')
 _matrix_add_module = tf.load_op_library(path)
 
 matrix_add = _matrix_add_module.matrix_add

@@ -1,6 +1,6 @@
 TF_INC = $(shell python -c 'import tensorflow as tf; print(tf.sysconfig.get_include())')
 CUDA_LIB = /graphics/projects/cuda/toolkit_8.0/cuda/lib
-CUDA_LIB = /usr/local/cuda/lib64
+# CUDA_LIB = /usr/local/cuda/lib64
 # some python versions need ABI=0
 ABI=1 
 
