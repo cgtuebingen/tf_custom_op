@@ -36,10 +36,10 @@ Example:
 nvcc -std=c++11 --expt-relaxed-constexpr --shared --gpu-architecture=sm_52 \
     -c -o matrix_add_op.cu.o kernels/matrix_add_kernel.cu \
     -isystem /home/wieschol/.local/lib/python2.7/site-packages/tensorflow/include \
-    -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC --shared -D _GLIBCXX_USE_CXX11_ABI=1 
+    -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC --shared -D _GLIBCXX_USE_CXX11_ABI=1
 g++ -std=c++11 -o matrix_add_op.so --shared \
     matrix_add_op.cu.o kernels/matrix_add_op.cc ops/matrix_add.cc kernels/matrix_add_kernel.cc\
     -isystem /home/wieschol/.local/lib/python2.7/site-packages/tensorflow/include  \
     -lcudart -L/usr/local/cuda/lib64 \
-    -fPIC --shared -D _GLIBCXX_USE_CXX11_ABI=1 
+    -fPIC --shared -D _GLIBCXX_USE_CXX11_ABI=1
 """
