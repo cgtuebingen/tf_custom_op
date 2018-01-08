@@ -24,7 +24,11 @@ execute_process(
 message(STATUS "TF_INC: ${TF_INC}")
 
 
+include_directories("${CUDA_INCLUDE_DIRS}/../../")
+include_directories("${TF_INC}/external/nsync/public/")
 
+include_directories("${CMAKE_SOURCE_DIR}/extra")
+include_directories(${TF_INC})
 include_directories(${TF_INC})
 include_directories("kernels")
 
@@ -42,3 +46,4 @@ endmacro()
 
 add_tfop("matrix_add")
 
+# (TENSORFLOW)/tensorflow/contrib/makefile/downloads/nsync/public

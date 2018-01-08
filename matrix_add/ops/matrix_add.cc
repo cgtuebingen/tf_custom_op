@@ -46,7 +46,7 @@ REGISTER_OP("MatrixAdd")
 
   // we can also use the Attr here
   float bias;
-  c->GetAttr("bias", &bias);
+  (void) c->GetAttr("bias", &bias);
 
   return Status::OK();
 })
