@@ -22,6 +22,11 @@ set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11  --expt-relaxed-constexpr -D 
 
 project( TFCustomOp )
 
+if(DEFINED ENV{TensorFlow_GIT_DIR})
+else()
+    message(FATAL_ERROR "The current TF version requires a file from the GIT-repository. Please set the path by export TensorFlow_GIT_DIR=...")
+endif()
+
 # use cuda
 find_package(CUDA 8.0 EXACT REQUIRED)
 set(CUDA_SAMPLE_INC "${CUDA_INCLUDE_DIRS}/../samples/common/inc")
@@ -37,8 +42,10 @@ find_package(TensorFlow REQUIRED)
 
 include_directories(SYSTEM "${CUDA_INCLUDE_DIRS}/../../")
 include_directories(SYSTEM "${TensorFlow_INCLUDE_DIR}/external/nsync/public")
-include_directories(SYSTEM "/graphics/opt/opt_Ubuntu16.04/tensorflow/third_party/toolchains/gpus/cuda")
-message(STATUS "include /graphics/opt/opt_Ubuntu16.04/tensorflow/third_party/toolchains/gpus/cuda")
+
+
+include_directories(SYSTEM "${TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cuda")
+message(STATUS "include ${TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cuda")
 
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/extra")
 include_directories(SYSTEM ${TensorFlow_INCLUDE_DIR})
