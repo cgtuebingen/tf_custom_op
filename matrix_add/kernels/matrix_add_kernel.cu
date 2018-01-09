@@ -8,7 +8,7 @@
 #include "matrix_add_op.h"
 
 
-namespace MatrixAddCuda {
+namespace {
 
 using CudaLaunchConfig = ::tensorflow::CudaLaunchConfig;
 
@@ -40,7 +40,7 @@ __global__ void backward(CudaLaunchConfig cfg,
   }
 }
 
-} // namespace MatrixAddCuda
+} // anonymous namespace
 
 
 namespace tensorflow {
@@ -59,7 +59,7 @@ struct MatrixAddFunctor<GPUDevice, Dtype> {
     ::tensorflow::CudaLaunchConfig cfg =
       ::tensorflow::GetCudaLaunchConfig(N, ctx->eigen_device<GPUDevice>());
 
-    MatrixAddCuda::forward<Dtype>
+    forward<Dtype>
       <<<cfg.block_count, cfg.thread_per_block>>>(
         cfg,
         mC_->flat<Dtype>().data(),
@@ -88,7 +88,7 @@ struct MatrixAddGrad<GPUDevice, Dtype> {
     ::tensorflow::CudaLaunchConfig cfg =
       ::tensorflow::GetCudaLaunchConfig(N, ctx->eigen_device<GPUDevice>());
 
-    MatrixAddCuda::backward<Dtype>
+    backward<Dtype>
       <<<cfg.block_count, cfg.thread_per_block>>>(
         cfg,
         topdiff_.flat<Dtype>().data(),

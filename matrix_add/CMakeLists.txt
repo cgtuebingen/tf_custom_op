@@ -23,6 +23,8 @@ set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11  --expt-relaxed-constexpr -D 
 project( TFCustomOp )
 
 if(DEFINED ENV{TensorFlow_GIT_DIR})
+    set(TensorFlow_GIT_DIR ENV{TensorFlow_GIT_DIR})
+    message(STATUS "use TF from git repo $ENV{TensorFlow_GIT_DIR}")
 else()
     message(FATAL_ERROR "The current TF version requires a file from the GIT-repository. Please set the path by export TensorFlow_GIT_DIR=...")
 endif()
@@ -44,8 +46,8 @@ include_directories(SYSTEM "${CUDA_INCLUDE_DIRS}/../../")
 include_directories(SYSTEM "${TensorFlow_INCLUDE_DIR}/external/nsync/public")
 
 
-include_directories(SYSTEM "${TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cuda")
-message(STATUS "include ${TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cuda")
+include_directories(SYSTEM "$ENV{TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cuda")
+message(STATUS "include $ENV{TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cuda")
 
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/extra")
 include_directories(SYSTEM ${TensorFlow_INCLUDE_DIR})
