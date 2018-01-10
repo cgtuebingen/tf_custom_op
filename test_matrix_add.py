@@ -13,7 +13,7 @@ class MatrixAddtest(tf.test.TestCase):
 
     def _forward(self, use_gpu=False, force_gpu=False, dtype=np.float32):
         matA = np.random.randn(1, 2, 3, 4).astype(dtype) * 10
-        matB = np.random.randn(1, 2, 3, 4).astype(dtype) * 0 + 1
+        matB = np.random.randn(1, 2, 3, 4).astype(dtype) * 10
         bias = 42.
 
         expected = matA + matB + bias
