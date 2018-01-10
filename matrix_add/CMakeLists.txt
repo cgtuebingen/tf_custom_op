@@ -15,8 +15,6 @@ else()
 endif()
 
 
-
-
 project( TFCustomOp )
 
 if(DEFINED ENV{TensorFlow_GIT_DIR})
@@ -32,10 +30,6 @@ set(CUDA_SAMPLE_INC "${CUDA_INCLUDE_DIRS}/../samples/common/inc")
 message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
 message(STATUS "CUDA_SAMPLE_INC: ${CUDA_SAMPLE_INC}")
 
-# add modules
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules")
-
-# find packages
 
 # set necessary flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SSE_FLAGS} -march=native -fopenmp -D_GLIBCXX_USE_CXX11_ABI=${TensorFlow_ABI}")
@@ -52,7 +46,6 @@ message(STATUS "include $ENV{TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cud
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/extra")
 include_directories(SYSTEM ${TensorFlow_INCLUDE_DIRS})
 include_directories(SYSTEM "kernels")
-
 
 macro(add_tfop arg)
   cuda_add_library(${arg}_op_cu SHARED kernels/${arg}_kernel.cu)
