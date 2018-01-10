@@ -4,21 +4,18 @@ cmake_minimum_required( VERSION 2.8 )
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
-option(USE_NEW_ABI "Build the TF-Op with ABI=1" OFF)
-
-
-if(USE_NEW_ABI)
-    set(ABI_VERSION "1")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tensorflow_config.txt")
+  include(${CMAKE_CURRENT_SOURCE_DIR}/tensorflow_config.txt)
+  
+  message(STATUS "TensorFlow_ABI: ${TensorFlow_ABI}")
+  message(STATUS "TensorFlow_INCLUDE_DIRS: ${TensorFlow_INCLUDE_DIRS}")
+  message(STATUS "TensorFlow_LIBRARIES: ${TensorFlow_LIBRARIES}")
 else()
-    set(ABI_VERSION "0")
-endif(USE_NEW_ABI)
-message(STATUS "use ABI ${ABI_VERSION}")
+  message(FATAL_ERROR "You need to run \"python configure.py\" first")
+endif()
 
-# set necessary flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SSE_FLAGS} -march=native -fopenmp -D_GLIBCXX_USE_CXX11_ABI=${ABI_VERSION}")
-set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fPIC --shared -D_GLIBCXX_USE_CXX11_ABI=${ABI_VERSION}" )
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11  --expt-relaxed-constexpr -D GOOGLE_CUDA=1 --gpu-architecture=sm_52 -D_GLIBCXX_USE_CXX11_ABI=${ABI_VERSION}" )
+
+
 
 project( TFCustomOp )
 
@@ -39,18 +36,21 @@ message(STATUS "CUDA_SAMPLE_INC: ${CUDA_SAMPLE_INC}")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules")
 
 # find packages
-find_package(TensorFlow REQUIRED)
 
+# set necessary flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SSE_FLAGS} -march=native -fopenmp -D_GLIBCXX_USE_CXX11_ABI=${TensorFlow_ABI}")
+set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fPIC --shared -D_GLIBCXX_USE_CXX11_ABI=${TensorFlow_ABI}" )
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11  --expt-relaxed-constexpr -D GOOGLE_CUDA=1 --gpu-architecture=sm_52 -D_GLIBCXX_USE_CXX11_ABI=${TensorFlow_ABI}" )
 
 include_directories(SYSTEM "${CUDA_INCLUDE_DIRS}/../../")
-include_directories(SYSTEM "${TensorFlow_INCLUDE_DIR}/external/nsync/public")
+include_directories(SYSTEM "${TensorFlow_INCLUDE_DIRS}/external/nsync/public")
 
 
 include_directories(SYSTEM "$ENV{TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cuda")
 message(STATUS "include $ENV{TensorFlow_GIT_DIR}/third_party/toolchains/gpus/cuda")
 
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/extra")
-include_directories(SYSTEM ${TensorFlow_INCLUDE_DIR})
+include_directories(SYSTEM ${TensorFlow_INCLUDE_DIRS})
 include_directories(SYSTEM "kernels")
 
 
@@ -61,7 +61,7 @@ macro(add_tfop arg)
   add_library(${arg}_op SHARED kernels/${arg}_op.cc kernels/${arg}_kernel.cc ops/${arg}.cc )
 
   set_target_properties(${arg}_op PROPERTIES PREFIX "")
-  target_link_libraries(${arg}_op LINK_PUBLIC ${arg}_op_cu ${TensorFlow_LIBRARY})
+  target_link_libraries(${arg}_op LINK_PUBLIC ${arg}_op_cu ${TensorFlow_LIBRARIES})
 
   message("arg = ${arg}")
 endmacro()
