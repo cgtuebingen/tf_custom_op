@@ -29,12 +29,12 @@ class MatrixAddtest(tf.test.TestCase):
         self.assertAllClose(expected, actual)
 
     def test_forward_float(self):
-        self._forward(use_gpu=False, dtype=np.float32)
-        self._forward(use_gpu=True, dtype=np.float32)
+        self._forward(use_gpu=False, force_gpu=False, dtype=np.float32)
+        self._forward(use_gpu=True, force_gpu=True, dtype=np.float32)
 
     def test_forward_double(self):
-        self._forward(use_gpu=False, dtype=np.float64)
-        self._forward(use_gpu=True, dtype=np.float64)
+        self._forward(use_gpu=False, force_gpu=False, dtype=np.float64)
+        self._forward(use_gpu=True, force_gpu=True, dtype=np.float64)
 
     def _backward(self, use_gpu=False, force_gpu=False, dtype=np.float32):
         matA = np.random.randn(1, 2, 3, 4).astype(dtype) * 10
@@ -55,12 +55,12 @@ class MatrixAddtest(tf.test.TestCase):
         self.assertLess(err, 1e-2)
 
     def test_backward_float(self):
-        self._backward(use_gpu=False, dtype=np.float32)
-        self._backward(use_gpu=True, dtype=np.float32)
+        self._backward(use_gpu=False, force_gpu=False, dtype=np.float32)
+        self._backward(use_gpu=True, force_gpu=True, dtype=np.float32)
 
     def test_backward_double(self):
-        self._backward(use_gpu=False, dtype=np.float64)
-        self._backward(use_gpu=True, dtype=np.float64)
+        self._backward(use_gpu=False, force_gpu=False, dtype=np.float64)
+        self._backward(use_gpu=True, force_gpu=True, dtype=np.float64)
 
 
 if __name__ == '__main__':

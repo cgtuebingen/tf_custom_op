@@ -25,7 +25,7 @@ else()
 endif()
 
 # use cuda
-find_package(CUDA 8.0 EXACT REQUIRED)
+find_package(CUDA 9.0 EXACT REQUIRED)
 set(CUDA_SAMPLE_INC "${CUDA_INCLUDE_DIRS}/../samples/common/inc")
 message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
 message(STATUS "CUDA_SAMPLE_INC: ${CUDA_SAMPLE_INC}")
