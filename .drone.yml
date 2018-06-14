@@ -1,0 +1,9 @@
+pipeline:
+  build:
+    image: tensorflow:cuda9-ubuntu16.04-tf1.9
+    commands:
+      - cd matrix_add/
+      - cp tensorflow_config.example.txt tensorflow_config.txt
+      - export TensorFlow_GIT_DIR=/tensorflow
+      - cmake .
+      - make
