@@ -20,9 +20,7 @@ project( TFCustomOp )
 
 # use cuda
 find_package(CUDA 9.0 EXACT REQUIRED)
-# set(CUDA_SAMPLE_INC "${CUDA_INCLUDE_DIRS}/../samples/common/inc")
 message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
-# message(STATUS "CUDA_SAMPLE_INC: ${CUDA_SAMPLE_INC}")
 
 
 # set necessary flags
@@ -30,9 +28,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SSE_FLAGS} -march=native -fopenmp -D_G
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fPIC --shared -D_GLIBCXX_USE_CXX11_ABI=${TensorFlow_ABI}" )
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11  --expt-relaxed-constexpr -D GOOGLE_CUDA=1 --gpu-architecture=sm_52 -D_GLIBCXX_USE_CXX11_ABI=${TensorFlow_ABI}" )
 
-# include_directories(SYSTEM "${CUDA_INCLUDE_DIRS}/../../")
 include_directories(SYSTEM "kernels/inc")
-
+include_directories(/usr/local/)
 
 if(DEFINED ENV{TensorFlow_GIT_DIR})
    set(TensorFlow_GIT_DIR ENV{TensorFlow_GIT_DIR})
@@ -41,7 +38,6 @@ else()
    message(FATAL_ERROR "The current TF version requires a file from the GIT-repository. Please set the path by export TensorFlow_GIT_DIR=...")
 endif()
 include_directories(SYSTEM "$ENV{TensorFlow_GIT_DIR}")
-
 include_directories(SYSTEM ${TensorFlow_INCLUDE_DIRS})
 include_directories(SYSTEM "kernels")
 
