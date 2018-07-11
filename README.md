@@ -8,6 +8,6 @@ The current version is tested on TensorFlow v1.9. Run the script
 ```bash
 python configure.py
 cmake .
-make -j
+make
 python test_matrix_add.py
 ```

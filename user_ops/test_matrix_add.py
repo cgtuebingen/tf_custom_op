@@ -28,6 +28,10 @@ class MatrixAddtest(tf.test.TestCase):
         self.assertShapeEqual(expected, actual_op)
         self.assertAllClose(expected, actual)
 
+    def test_forward_int(self):
+        self._forward(use_gpu=False, force_gpu=False, dtype=np.int32)
+        self._forward(use_gpu=True, force_gpu=True, dtype=np.int32)
+
     def test_forward_float(self):
         self._forward(use_gpu=False, force_gpu=False, dtype=np.float32)
         self._forward(use_gpu=True, force_gpu=True, dtype=np.float32)

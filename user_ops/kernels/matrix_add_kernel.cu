@@ -87,9 +87,9 @@ struct MatrixAddGrad<GPUDevice, Dtype> {
     ::tensorflow::CudaLaunchConfig cfg =
       ::tensorflow::GetCudaLaunchConfig(N, ctx->eigen_device<GPUDevice>());
 
-    // optional reset gradients
-    cudaMemset(grad_mA_->flat<Dtype>().data(), 0, N * sizeof(Dtype));
-    cudaMemset(grad_mB_->flat<Dtype>().data(), 0, N * sizeof(Dtype));
+    // // optional reset gradients before running a kernel
+    // cudaMemset(grad_mA_->flat<Dtype>().data(), 0, N * sizeof(Dtype));
+    // cudaMemset(grad_mB_->flat<Dtype>().data(), 0, N * sizeof(Dtype));
 
     // backward<Dtype>
     // <<< cfg.block_count, cfg.thread_per_block, 0, ctx->eigen_gpu_device().stream() >>> (

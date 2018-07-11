@@ -85,7 +85,6 @@ class MatrixAddGradOp: public OpKernel {
 REGISTER(MatrixAdd, int);
 REGISTER(MatrixAdd, float);
 REGISTER(MatrixAdd, double);
-REGISTER(MatrixAddGrad, int);
 REGISTER(MatrixAddGrad, float);
 REGISTER(MatrixAddGrad, double);
 
