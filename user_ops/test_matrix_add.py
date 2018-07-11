@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# ComputerGraphics Tuebingen, 2017
+# ComputerGraphics Tuebingen, 2018
 
 import numpy as np
 import tensorflow as tf
-from matrix_add import matrix_add
+from __init__ import matrix_add
 
 np.random.seed(42)
 tf.set_random_seed(42)

@@ -22,8 +22,7 @@ REGISTER_OP("MatrixAdd")
 .Input("matrix_a: T")
 .Input("matrix_b: T")
 .Output("output: T")
-.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c)
-{
+.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
   // we require the input to have 4 axes
   ShapeHandle shape_hnd;
   TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 4, &shape_hnd));

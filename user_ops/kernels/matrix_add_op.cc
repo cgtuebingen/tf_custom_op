@@ -1,4 +1,4 @@
-// ComputerGraphics Tuebingen, 2017
+// ComputerGraphics Tuebingen, 2018
 
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -13,7 +13,7 @@ namespace tensorflow {
 // --------------------------------------------------
 template<typename Device, typename Dtype>
 class MatrixAddOp: public OpKernel {
-public:
+ public:
   explicit MatrixAddOp(OpKernelConstruction* ctx) :
     OpKernel(ctx) {
     OP_REQUIRES_OK(ctx,
@@ -21,18 +21,18 @@ public:
   }
 
   void Compute(OpKernelContext* ctx) override {
-    // printf("--> Compute CPU Version <--\n");
     const Tensor& mA = ctx->input(0);
     const Tensor& mB = ctx->input(1);
 
-    const int B = mA.shape().dim_size(0);
-    const int M = mA.shape().dim_size(1);
-    const int N = mA.shape().dim_size(2);
-    const int D = mA.shape().dim_size(3);
+    OP_REQUIRES(ctx, mA.shape() == mB.shape(), errors::InvalidArgument("Input shapes have to be the same"));
+
+    const int B = mA.dim_size(0);
+    const int M = mA.dim_size(1);
+    const int N = mA.dim_size(2);
+    const int D = mA.dim_size(3);
 
     TensorShape output_shape({B, M, N, D});
-    // same as 
-    // output_shape.AddDim(B); ....
+    // same as: output_shape.AddDim(B); ....
 
     Tensor* mC = nullptr;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &mC));
@@ -40,10 +40,9 @@ public:
 
     ::tensorflow::functor::MatrixAddFunctor<Device, Dtype>()(ctx,
         mA, mB, mC, bias_);
-
   }
 
-private:
+ private:
   TF_DISALLOW_COPY_AND_ASSIGN(MatrixAddOp);
   float bias_;
 };
@@ -52,13 +51,12 @@ private:
 // --------------------------------------------------
 template<typename Device, typename Dtype>
 class MatrixAddGradOp: public OpKernel {
-public:
+ public:
   explicit MatrixAddGradOp(OpKernelConstruction* ctx) :
     OpKernel(ctx) {
   }
 
   void Compute(OpKernelContext* ctx) override {
-    // printf("--> Compute CPU Version <--\n");
     const Tensor& mA = ctx->input(0);
     const Tensor& mB = ctx->input(1);
     const Tensor& topdiff = ctx->input(2);
@@ -70,9 +68,7 @@ public:
 
     ::tensorflow::functor::MatrixAddGrad<Device, Dtype>()(ctx,
         topdiff, grad_mA, grad_mB);
-
   }
-
 };
 
 
@@ -83,7 +79,7 @@ public:
       OPNAME(NAME)<CPUDevice, Dtype>);                                 \
   REGISTER_KERNEL_BUILDER(                                             \
       Name(#NAME).Device(DEVICE_GPU).TypeConstraint<Dtype>("T"),       \
-      OPNAME(NAME)<GPUDevice, Dtype>);                                           
+      OPNAME(NAME)<GPUDevice, Dtype>);
 
 
 REGISTER(MatrixAdd, int);
@@ -95,4 +91,4 @@ REGISTER(MatrixAddGrad, double);
 
 
 
-} // namespace tensorflow
+}  // namespace tensorflow

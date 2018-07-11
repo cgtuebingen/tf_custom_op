@@ -1,4 +1,4 @@
-// ComputerGraphics Tuebingen, 2017
+// ComputerGraphics Tuebingen, 2018
 
 #if GOOGLE_CUDA
 
@@ -20,7 +20,7 @@ __global__ void forward(CudaLaunchConfig cfg,
                         const T* matrixB,
                         const T bias) {
   // for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < N; i += blockDim.x * gridDim.x) {
-  CUDA_1D_KERNEL_LOOP(i, cfg.virtual_thread_count){
+  CUDA_1D_KERNEL_LOOP(i, cfg.virtual_thread_count) {
     top[i] = matrixA[i] + matrixB[i] + (T) bias;
   }
 }
@@ -34,7 +34,7 @@ __global__ void backward(CudaLaunchConfig cfg,
                          T* grad_matrixB) {
 
   // for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < N; i += blockDim.x * gridDim.x) {
-  CUDA_1D_KERNEL_LOOP(i, cfg.virtual_thread_count){
+  CUDA_1D_KERNEL_LOOP(i, cfg.virtual_thread_count) {
     grad_matrixA[i] = top_diff[i];
     grad_matrixB[i] = top_diff[i];
   }
@@ -53,20 +53,19 @@ struct MatrixAddFunctor<GPUDevice, Dtype> {
                    const Tensor& mB_,
                    Tensor *mC_,
                    Dtype bias) {
-
     const int N = mA_.NumElements();
 
     ::tensorflow::CudaLaunchConfig cfg =
       ::tensorflow::GetCudaLaunchConfig(N, ctx->eigen_device<GPUDevice>());
 
     forward<Dtype>
-      <<<cfg.block_count, cfg.thread_per_block>>>(
-        cfg,
-        mC_->flat<Dtype>().data(),
-        mA_.NumElements(),
-        mA_.flat<Dtype>().data(),
-        mB_.flat<Dtype>().data(),
-        bias);
+    <<< cfg.block_count, cfg.thread_per_block, 0, ctx->eigen_gpu_device().stream() >>> (
+      cfg,
+      mC_->flat<Dtype>().data(),
+      mA_.NumElements(),
+      mA_.flat<Dtype>().data(),
+      mB_.flat<Dtype>().data(),
+      bias);
 
   }
 };
@@ -88,13 +87,21 @@ struct MatrixAddGrad<GPUDevice, Dtype> {
     ::tensorflow::CudaLaunchConfig cfg =
       ::tensorflow::GetCudaLaunchConfig(N, ctx->eigen_device<GPUDevice>());
 
-    backward<Dtype>
-      <<<cfg.block_count, cfg.thread_per_block>>>(
-        cfg,
-        topdiff_.flat<Dtype>().data(),
-        topdiff_.NumElements(),
-        grad_mA_->flat<Dtype>().data(),
-        grad_mB_->flat<Dtype>().data());
+    // optional reset gradients
+    cudaMemset(grad_mA_->flat<Dtype>().data(), 0, N * sizeof(Dtype));
+    cudaMemset(grad_mB_->flat<Dtype>().data(), 0, N * sizeof(Dtype));
+
+    // backward<Dtype>
+    // <<< cfg.block_count, cfg.thread_per_block, 0, ctx->eigen_gpu_device().stream() >>> (
+    //   cfg,
+    //   topdiff_.flat<Dtype>().data(),
+    //   topdiff_.NumElements(),
+    //   grad_mA_->flat<Dtype>().data(),
+    //   grad_mB_->flat<Dtype>().data());
+
+    // faster alternative to custom kernel (above)
+    cudaMemcpy(grad_mA_->flat<Dtype>().data(), topdiff_.flat<Dtype>().data(), N * sizeof(Dtype), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(grad_mB_->flat<Dtype>().data(), topdiff_.flat<Dtype>().data(), N * sizeof(Dtype), cudaMemcpyDeviceToDevice);
 
   }
 };
